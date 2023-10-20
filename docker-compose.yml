@@ -1,0 +1,42 @@
+version: "3"
+services:
+    galaxyt-php:
+        container_name: galaxyt-php
+        build: .
+        working_dir: /app
+        expose:
+            - 9000
+        volumes:
+            - ./:/app
+            - ./docker/php-fpm/galaxyt.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+
+    galaxyt-redis:
+        container_name: galaxyt-redis
+        image: redis:6.0.16
+        command: redis-server --requirepass "password"
+        ports:
+            - 9010:6379
+
+    galaxyt-nginx:
+        depends_on:
+            - galaxyt-php
+        container_name: galaxyt-nginx
+        image: nginx:1.21
+        volumes:
+            - ./docker/nginx/conf/:/etc/nginx/conf.d/:ro
+            - ./docker/nginx/cert/:/var/cert:ro
+        ports:
+            - 80:80
+            - 443:443
+
+    galaxyt-postgres14:
+        container_name: galaxyt-postgres14
+        image: timescaledev/timescaledb-ha:pg14-all
+        environment:
+            POSTGRES_USER: galaxyt
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: galaxyt
+        ports:
+            - 6543:5432
+        volumes:
+            - ./postgres14-data:/home/postgres/pgdata
